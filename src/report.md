@@ -116,6 +116,16 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
 ## Part 2. Статическая маршрутизация между двумя машинами
 
 `-` Теперь разберёмся, как связать две машины, используя статическую маршрутизацию.
@@ -124,43 +134,181 @@
 
 ##### Поднять две виртуальные машины (далее -- ws1 и ws2)
 
+- Подняли 2 виртуальные машины. В настройках Virtual Box к каждой добавили Адаптер 2 - адаптер внутренней сети. Далее при вызове ip a увидим, что появился третий сетевой интерфейс как раз засчет добавления порта 2.
+
+
 ##### С помощью команды `ip a` посмотреть существующие сетевые интерфейсы
-- В отчёт поместить скрин с вызовом и выводом использованной команды.
+
+```bash
+ws1@ws1:~$ ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host
+       valid_lft forever preferred_lft forever
+2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 08:00:27:6d:92:ee brd ff:ff:ff:ff:ff:ff
+    inet 10.0.2.15/24 brd 10.0.2.255 scope global dynamic enp0s3
+       valid_lft 85266sec preferred_lft 85266sec
+    inet6 fe80::a00:27ff:fe6d:92ee/64 scope link
+       valid_lft forever preferred_lft forever
+3: enp0s8: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN group default qlen 1000
+    link/ether 08:00:27:d3:2b:27 brd ff:ff:ff:ff:ff:ff
+```
+
+```bash
+ws2@ws2:~$ ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host
+       valid_lft forever preferred_lft forever
+2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 08:00:27:60:8c:d4 brd ff:ff:ff:ff:ff:ff
+    inet 10.0.2.15/24 brd 10.0.2.255 scope global dynamic enp0s3
+       valid_lft 86336sec preferred_lft 86336sec
+    inet6 fe80::a00:27ff:fe60:8cd4/64 scope link
+       valid_lft forever preferred_lft forever
+3: enp0s8: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN group default qlen 1000
+    link/ether 08:00:27:5a:da:56 brd ff:ff:ff:ff:ff:ff
+```
+
 ##### Описать сетевой интерфейс, соответствующий внутренней сети, на обеих машинах и задать следующие адреса и маски: ws1 - *192.168.100.10*, маска */16*, ws2 - *172.24.116.8*, маска */12*
-- В отчёт поместить скрины с содержанием изменённого файла *etc/netplan/00-installer-config.yaml* для каждой машины.
+
+![Changes in configuration for ws1 and ws2](./img/vim_ws1_ws2.png)
+
+```bash
+ws1@ws1:~$ cat /etc/netplan/00-installer-config.yaml
+# This is the network config written by 'subiquity'
+network:
+  ethernets:
+    enp0s3:
+      dhcp4: true
+    enp0s8:
+      dhcp4: false
+      addresses: [192.168.100.10/16]
+  version: 2
+```
+
+```bash
+ws2@ws2:~$ cat /etc/netplan/00-installer-config.yaml
+# This is the network config written by 'subiquity'
+network:
+  ethernets:
+    enp0s3:
+      dhcp4: true
+    enp0s8:
+      dhcp4: false
+      addresses: [172.24.116.8/12]
+  version: 2
+```
+
+
+
+
 ##### Выполнить команду `netplan apply` для перезапуска сервиса сети
 - В отчёт поместить скрин с вызовом и выводом использованной команды.
 
+```bash
+$ netplan --debug apply
+```
+
+![Netplan apply for ws1 and ws2](./img/netplan_ws1_ws2.png)
+
+
+
 #### 2.1. Добавление статического маршрута вручную
 ##### Добавить статический маршрут от одной машины до другой и обратно при помощи команды вида `ip r add`
+
+
+```bash
+ws1@ws1:~$ sudo ip r add 172.24.116.8 dev enp0s8
+```
+
+
+```bash
+ws2@ws2:~$ sudo ip r add 192.168.100.10 dev enp0s8
+```
+
+
 ##### Пропинговать соединение между машинами
-- В отчёт поместить скрин с вызовом и выводом использованных команд.
+
+![Ping ws1 and ws2](./img/ping_ws1_ws2.png)
+
+
+
 
 #### 2.2. Добавление статического маршрута с сохранением
-##### Перезапустить машины
-##### Добавить статический маршрут от одной машины до другой с помощью файла *etc/netplan/00-installer-config.yaml*
-- В отчёт поместить скрин с содержанием изменённого файла *etc/netplan/00-installer-config.yaml*.
-##### Пропинговать соединение между машинами
-- В отчёт поместить скрин с вызовом и выводом использованной команды.
+
+- После перезапуска пинганем и увидим, что машны не пингуются :(
+
+```bash
+ws1@ws1:~$ ping 172.24.116.8
+PING 172.24.116.8 (172.24.116.8) 56(84) bytes of data.
+^C
+--- 172.24.116.8 ping statistics ---
+10 packets transmitted, 0 received, 100% packet loss, time 9216ms
+```
+
+- Изменим файл *etc/netplan/00-installer-config.yaml*, дабы все изменения и после перезапуска оставались.
+
+![Routes ws1 and ws2](./img/routes_ws1_ws2.png)
+
+- Примем изменения с помощью sudo netplan apply и пропингуем соединение между машинами
+
+![Ping 2 ws1 and ws2](./img/ping_ws1_ws2_2.png)
+
+
+
+
+
+
+
+
+
+
+
 
 ## Part 3. Утилита **iperf3**
-
-`-` Теперь, когда мы связали две машины, ответь мне: что самое важно при передаче информация между машинами?
-
-`-` Скорость соединения?
-
-`-` Всё верно. Будем её проверять с помощью утилиты **iperf3**.
-
-**== Задание ==**
 
 *В данном задании используются виртуальные машины ws1 и ws2 из Части 2*
 
 #### 3.1. Скорость соединения
-##### Перевести и записать в отчёт: 8 Mbps в MB/s, 100 MB/s в Kbps, 1 Gbps в Mbps
+
+|Скорость|Перевод|Результат|
+|---|---|---|
+|8 Mbps|8/8|1 MB/s|
+|100 MB/s|100 * 1024 * 8|819200 Kbps|
+|1 Gbps|1 * 1024|1024 Mbps|
+
 
 #### 3.2. Утилита **iperf3**
 ##### Измерить скорость соединения между ws1 и ws2
-- В отчёт поместить скрины с вызовом и выводом использованных команд.
+```mermaid
+graph TD;
+    client-->|'жив?'|server;
+    server-->|'да, жив'|client;
+```
+
+- iperf3 работает по клиент-серверной модели. Машина, скорость которой будем измерять - клиент. Другая машина будет играть роль сервера. На сервере запускаем команду
+
+```bash
+iperf3 -s
+```
+
+- На клиенте запускаем команду ниже, где <ip_addr> - адрес нашего сервера.
+
+```bash
+iperf3 -c <ip_addr>
+```
+
+
+![Iperf3 of ws1](./img/iperf_ws1.png)
+
+![Iperf3 of ws1](./img/iperf_ws2.png)
+
 
 ## Part 4. Сетевой экран
 
@@ -171,14 +319,36 @@
 *В данном задании используются виртуальные машины ws1 и ws2 из Части 2*
 
 #### 4.1. Утилита **iptables**
-##### Создать файл */etc/firewall.sh*, имитирующий фаерволл, на ws1 и ws2:
-```shell
+
+##### Создадим файл */etc/firewall.sh*, имитирующий фаерволл, на ws1 и ws2:
+
+```bash
 #!/bin/sh
 
 # Удаление всех правил в таблице "filter" (по-умолчанию).
-iptables –F
-iptables -X
+iptables –F  # Delete all rules in  chain or all chains
+iptables -X  # Delete a user-defined chain
+
+# Добавление новых правил, синтаксис
+iptables -A {INPUT|OUTPUT} -p icmp -j {ACCEPT|REJECT|DROP}
+iptables -A {INPUT|OUTPUT} -p icmp --icmp-type {echo-reply|echo-request} -j {ACCEPT|REJECT|DROP}
+
 ```
+
+
+```bash
+# Добавление портов
+iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+```
+- -A  - append to chain
+- -p - cетевой протокол. Допустимые варианты — TCP, UDP, ICMP или ALL
+- --dport - порт назначения
+- -j - target
+
+iptables -A OUTPUT -p icmp --icmp-type echo-reply -j ACCEPT
+iptables -A OUTPUT -p icmp --icmp-type echo-reply -j DROP
+
 ##### Нужно добавить в файл подряд следующие правила:
 ##### 1) на ws1 применить стратегию когда в начале пишется запрещающее правило, а в конце пишется разрешающее правило (это касается пунктов 4 и 5)
 ##### 2) на ws2 применить стратегию когда в начале пишется разрешающее правило, а в конце пишется запрещающее правило (это касается пунктов 4 и 5)
@@ -187,7 +357,13 @@ iptables -X
 ##### 5) разрешить *echo reply* (машина должна "пинговаться")
 - В отчёт поместить скрины с содержанием файла */etc/firewall* для каждой машины.
 ##### Запустить файлы на обеих машинах командами `chmod +x /etc/firewall.sh` и `/etc/firewall.sh`
-- В отчёт поместить скрины с запуском обоих файлов.
+
+
+![vim_firewall](./img/vim_firewall.png)
+![sh_firewall](./img/sh_firewall.png)
+
+
+
 - В отчёте описать разницу между стратегиями, применёнными в первом и втором файлах.
 
 #### 4.2. Утилита **nmap**
@@ -195,9 +371,10 @@ iptables -X
 *Проверка: в выводе nmap должно быть сказано: `Host is up`*
 - В отчёт поместить скрины с вызовом и выводом использованных команд **ping** и **nmap**.
 
-##### Сохранить дампы образов виртуальных машин
-**p.s. Ни в коем случае не сохранять дампы в гит!**
+![ping_with_firewall](./img/ping_with_firewall.png)
+![nmap_firewall](./img/nmap_firewall.png)
 
+##### Сохранить дампы образов виртуальных машин
 
 ## Part 5. Статическая маршрутизация сети
 
@@ -401,3 +578,24 @@ subnet 10.20.0.0 netmask 255.255.255.192
 `-` А ты о своих!
 
 \> *Вы ещё какое-то время болтаете на прочие темы, слушая приятную музыку и допивая заказанные напитки, после чего прощаетесь...*
+
+
+
+
+### Дополнительно. Настройка ssh-портов для работы с терминала мака.
+
+- В настройках VB для адаптера 1 (NAT) выбираем "проброс портов" и добавляем порт хоста (произвольный от 1000, пусть будет 3333) и порт гостя (22, так как ssh). В терминале машин вводим 
+![адаптер2](./img/adapter_2.png)
+![Проброс портов](./img/проброс_портов.png)
+```bash
+service ssh status
+```
+- В терминале на маке вводим (3333 - порт хоста, заданный выше, ws1 - название машины)
+
+```bash
+ssh -p 3333 ws1@localhost
+```
+- Готово! Теперь можно удобно работать с привычного терминала, листать его и юзать ctrl+c, ctrl+v.
+
+
+
