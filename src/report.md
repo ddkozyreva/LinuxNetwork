@@ -479,9 +479,9 @@ default via 10.10.0.1 dev eth0
 #### 5.5. Построение списка маршрутизаторов
 ##### Traceroute
 
-##### Запустим на r1 команду дампа:
+- Запустим на r1 команду дампа:
 `tcpdump -tnv -i eth0`
-##### При помощи утилиты **traceroute** построим список маршрутизаторов на пути от ws11 до ws21
+- При помощи утилиты **traceroute** построим список маршрутизаторов на пути от ws11 до ws21
 
 ![traceroute_5_5](./img/traceroute_5_5.png)
 
@@ -625,6 +625,17 @@ dhclient -v eth0    # запрос новых конфигураций
 
 ##### Сохранить дампы образов виртуальных машин
 **p.s. Ни в коем случае не сохранять дампы в гит!**
+
+
+![apache_1](./img/apache_1.png)
+![apache_2](./img/apache_2.png)
+![firewall_part7](./img/firewall_part7.png)
+![ping_part7](./img/ping_part7.png)
+![firewall2_part7](./img/firewall2_part7.png)
+![ping2_part7](./img/ping2_part7.png)
+
+
+
 
 ## Part 8. Дополнительно. Знакомство с **SSH Tunnels**
 
