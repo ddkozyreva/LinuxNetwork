@@ -6,6 +6,8 @@ Linux networks configuration on virtual machines.
 
 The russian version of the task can be found in the repository.
 
+Description of the work done in the src/.
+
 ## Contents
 
 1. [Chapter I](#chapter-i)
