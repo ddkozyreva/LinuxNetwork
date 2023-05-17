@@ -1,7 +1,5 @@
 # Linux Network
 
-> Проект школы 21 по сетям. Описание проделанной работы в src/.
-
 Linux networks configuration on virtual machines.
 
 The russian version of the task can be found in the repository.
